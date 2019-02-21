@@ -12,9 +12,10 @@ import (
 
 type Nota struct {
 	// json:"titulo" esto es para que el json sepa que es en minuscula, y en la declaracion se pone el mayuscula Titulo
-	titulo        string
-	descripcion   string
-	fechaCreacion time.Time
+	// las notaciones son muy importantes porque sin ella no funcionan los servicios del post y put
+	Titulo        string    `json:"titulo"`
+	Descripcion   string    `json:"descripcion"`
+	FechaCreacion time.Time `json:"fecha_creacion"`
 }
 
 // Map de tipo Nota, que funciona como si se tratara de la base de datos
@@ -76,7 +77,7 @@ func postNotaHandler(w http.ResponseWriter, r *http.Request) {
 
 	// esto es para setear la fecha de creacion en el momento que se hizo el post y fue exitoso
 	// ya que el usuario no envia esta fecha si no que se setea cuando se realiza el post con exito
-	nota.fechaCreacion = time.Now()
+	nota.FechaCreacion = time.Now()
 	id++
 	// lo que hace este strconv es convertir un entero en un string con este Itoa
 	k := strconv.Itoa(id)
@@ -128,7 +129,7 @@ func putNotaHandler(w http.ResponseWriter, r *http.Request) {
 	// el ok sirve para que el nos retorne la nota si existe si no retorna vacio y esta nota queda almacenana en notaOld
 	if notaOld, ok := mapNotas[k]; ok {
 		// se guarda en la notaUpdate la fecha de creacion que tenia la notaOld
-		notaUpdate.fechaCreacion = notaOld.fechaCreacion
+		notaUpdate.FechaCreacion = notaOld.FechaCreacion
 		// luego se borra la nota
 		delete(mapNotas, k)
 		// y luego en la misma posicion insertamos la notaUpdate
