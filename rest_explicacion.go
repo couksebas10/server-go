@@ -165,7 +165,8 @@ func deleteNotaHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+// Cambiar a main o entender como funciona
+func rest() {
 
 	// r es para crear las rutas o rutero
 	r := mux.NewRouter().StrictSlash(false)
