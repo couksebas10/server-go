@@ -9,56 +9,57 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Usuario struct {
-	Id   string `json:"_id"`
 	Name string `json:"name"`
 	Edad int    `json:"edad"`
 }
 
 func getUsuarios(w http.ResponseWriter, r *http.Request) {
 
-	MongoConnURL := "mongodb://127.0.0.1:27017"
-	client, err := mongo.Connect(context.TODO(), MongoConnURL, nil)
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 
 	if err != nil {
 		panic(err)
 	}
 
 	err = client.Ping(context.TODO(), nil)
-	fmt.Printf("Connected to MongoDB!")
+	fmt.Println("Connected to MongoDB!")
 
 	collection := client.Database("prueba").Collection("test")
 
-	findOptions := options.Find()
 	var user []Usuario
+	cur, err := collection.Find(context.Background(), bson.D{})
 
-	response, err := collection.Find(context.TODO(), nil, findOptions)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error de find")
+		log.Fatal(err)
 	}
 
-	for response.Next(context.TODO()) {
+	for cur.Next(context.TODO()) {
 		var elem Usuario
-		err := response.Decode(&elem)
+		err := cur.Decode(&elem)
 		if err != nil {
 			panic(err)
 		}
 		user = append(user, elem)
 	}
 
-	if err := response.Err(); err != nil {
+	if err := cur.Err(); err != nil {
+		fmt.Println("Error agregando")
 		panic(err)
 	}
 
-	response.Close(context.TODO())
+	cur.Close(context.TODO())
 
 	w.Header().Set("Content-Type", "application/json")
 	j, err := json.Marshal(user)
 	if err != nil {
+		fmt.Println("Error parse json")
 		panic(err)
 	}
 	w.WriteHeader(http.StatusOK)
@@ -67,15 +68,50 @@ func getUsuarios(w http.ResponseWriter, r *http.Request) {
 	err = client.Disconnect(context.TODO())
 
 	if err != nil {
+		fmt.Println("Error desconectando")
 		log.Fatal(err)
 	}
 	fmt.Println("Connection to MongoDB closed.")
+}
+
+func postUsuarios(w http.ResponseWriter, r *http.Request) {
+
+	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	if err != nil {
+		panic(err)
+	}
+
+	collection := client.Database("prueba").Collection("test")
+
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := collection.InsertOne(context.TODO(), r.Body)
+	fmt.Printf("Se inserto", res.InsertedID)
+	w.Header().Set("Content-Type", "application/json")
+
+	if err != nil {
+		panic(err)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	err = client.Disconnect(context.TODO())
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Connection to MongoDB closed.")
+
 }
 
 func main() {
 
 	r := mux.NewRouter().StrictSlash(false)
 	r.HandleFunc("/getUsuarios", getUsuarios).Methods("GET")
+	r.HandleFunc("/postUsuarios", postUsuarios).Methods("POST")
 
 	server := &http.Server{
 		Addr:           ":8080",
